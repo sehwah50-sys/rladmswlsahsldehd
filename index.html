@@ -1,1 +1,279 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>은진이 똥 빵꾸</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: white;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
 
+        canvas {
+            cursor: pointer;
+        }
+
+        .info {
+            position: absolute;
+            top: 20px;
+            color: #333;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .message {
+            position: absolute;
+            color: #8B4513;
+            font-family: Arial, sans-serif;
+            font-size: 28px;
+            font-weight: bold;
+            pointer-events: none;
+            animation: fadeOut 1.5s forwards;
+        }
+
+        @keyframes fadeOut {
+            0% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-80px) scale(1.5);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="info">은진이 똥 빵꾸</div>
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        let person = null;
+        let poops = [];
+
+        // 사람 그리기 함수
+        function drawPerson(x, y, scale) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.scale(scale, scale);
+            
+            // 머리
+            ctx.fillStyle = '#FFD4A3';
+            ctx.beginPath();
+            ctx.arc(0, -60, 30, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 눈
+            ctx.fillStyle = '#000';
+            ctx.beginPath();
+            ctx.arc(-10, -65, 3, 0, Math.PI * 2);
+            ctx.arc(10, -65, 3, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 입
+            ctx.beginPath();
+            ctx.arc(0, -55, 8, 0, Math.PI);
+            ctx.stroke();
+            
+            // 몸통
+            ctx.fillStyle = '#4A90E2';
+            ctx.fillRect(-20, -30, 40, 60);
+            
+            // 팔
+            ctx.fillStyle = '#FFD4A3';
+            ctx.fillRect(-35, -20, 15, 40);
+            ctx.fillRect(20, -20, 15, 40);
+            
+            // 다리
+            ctx.fillStyle = '#2C3E50';
+            ctx.fillRect(-18, 30, 15, 50);
+            ctx.fillRect(3, 30, 15, 50);
+            
+            ctx.restore();
+        }
+
+        // 똥 그리기 함수
+        function drawPoop(x, y, size) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.scale(size, size);
+            
+            // 똥 모양 (소프트 아이스크림 스타일)
+            ctx.fillStyle = '#8B4513';
+            
+            // 아래 부분
+            ctx.beginPath();
+            ctx.arc(0, 10, 15, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 중간 부분
+            ctx.beginPath();
+            ctx.arc(0, -5, 12, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 위 부분
+            ctx.beginPath();
+            ctx.arc(0, -18, 8, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 반짝이
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.arc(-3, -20, 2, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.restore();
+        }
+
+        // 사람 객체
+        class Person {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.scale = 1;
+                this.targetScale = 1;
+                this.shaking = false;
+                this.shakeOffset = 0;
+            }
+
+            update() {
+                this.scale += (this.targetScale - this.scale) * 0.2;
+                
+                if (this.shaking) {
+                    this.shakeOffset = Math.sin(Date.now() * 0.05) * 5;
+                }
+            }
+
+            draw() {
+                drawPerson(this.x + this.shakeOffset, this.y, this.scale);
+            }
+
+            poop() {
+                this.targetScale = 0.9;
+                this.shaking = true;
+                
+                setTimeout(() => {
+                    this.targetScale = 1;
+                    this.shaking = false;
+                    this.shakeOffset = 0;
+                }, 500);
+
+                // 똥 생성
+                for (let i = 0; i < 5; i++) {
+                    setTimeout(() => {
+                        poops.push(new Poop(this.x, this.y + 50));
+                    }, i * 100);
+                }
+            }
+        }
+
+        // 똥 파티클 클래스
+        class Poop {
+            constructor(x, y) {
+                this.x = x + (Math.random() - 0.5) * 30;
+                this.y = y;
+                const angle = Math.PI / 2 + (Math.random() - 0.5) * 0.5;
+                const speed = Math.random() * 3 + 2;
+                this.vx = Math.cos(angle) * speed;
+                this.vy = -Math.sin(angle) * speed;
+                this.life = 1;
+                this.decay = 0.01;
+                this.size = Math.random() * 0.5 + 0.5;
+                this.rotation = Math.random() * Math.PI * 2;
+                this.rotationSpeed = (Math.random() - 0.5) * 0.3;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.vy += 0.3; // 중력
+                this.life -= this.decay;
+                this.rotation += this.rotationSpeed;
+                
+                // 바닥에 닿으면
+                if (this.y > canvas.height - 100) {
+                    this.vy *= -0.5; // 튕김
+                    this.vx *= 0.8;
+                    if (Math.abs(this.vy) < 0.5) {
+                        this.decay = 0.02; // 바닥에 있으면 빨리 사라짐
+                    }
+                }
+            }
+
+            draw() {
+                ctx.globalAlpha = this.life;
+                drawPoop(this.x, this.y, this.size);
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        // 중앙에 사람 생성
+        person = new Person(canvas.width / 2, canvas.height / 2);
+
+        // 클릭 이벤트
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            person.poop();
+            
+            // "뿌직!" 메시지 표시
+            const message = document.createElement('div');
+            message.className = 'message';
+            message.textContent = '뿌직!';
+            message.style.left = x + 'px';
+            message.style.top = y + 'px';
+            document.body.appendChild(message);
+            
+            setTimeout(() => {
+                message.remove();
+            }, 1500);
+        });
+
+        // 애니메이션 루프
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 사람 업데이트 및 그리기
+            if (person) {
+                person.update();
+                person.draw();
+            }
+
+            // 똥 업데이트 및 그리기
+            poops = poops.filter(p => p.life > 0);
+            poops.forEach(p => {
+                p.update();
+                p.draw();
+            });
+
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+
+        // 창 크기 조절 시
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            person.x = canvas.width / 2;
+            person.y = canvas.height / 2;
+        });
+    </script>
+</body>
+</html>
